@@ -51,7 +51,7 @@ add_executable(ranger_base_node
     src/ranger_messenger.cpp)
 
 target_link_libraries(ranger_base_node ugv_sdk ${dependencies})
-ament_target_dependencies(ranger_base_node rclcpp tf2 tf2_ros std_msgs nav_msgs sensor_msgs ranger_msgs ${dependencies})
+ament_target_dependencies(ranger_base_node rclcpp tf2 tf2_geometry_msgs tf2_ros std_msgs nav_msgs sensor_msgs ranger_msgs ${dependencies})
 
 install(TARGETS ranger_base_node
   DESTINATION lib/${PROJECT_NAME})
