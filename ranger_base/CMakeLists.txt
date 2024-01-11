@@ -40,10 +40,10 @@ set(DEPENDENCIES
   "rclcpp"
   "std_msgs"
   "tf2"
+  "tf2_geometry_msgs"
   "tf2_ros"
   "ranger_msgs"
   "sensor_msgs"
-  "tf2_geometry_msgs"
 )
 
 add_executable(ranger_base_node 
