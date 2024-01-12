@@ -15,12 +15,15 @@ using namespace rclcpp;
 using namespace ranger_msgs::msg;
 
 namespace westonrobot {
-namespace {
-double DegreeToRadian(double x) { return x * M_PI / 180.0; }
-}  // namespace
+// namespace {
+// double DegreeToRadian(double x) { return x * M_PI / 180.0; }
+// }  // namespace
 
 ///////////////////////////////////////////////////////////////////////////////////
 RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
+
+  // bool is_simulation = node->declare_parameter<bool>("is_simulation", false);
+  bool is_simulation = true;
 
   node_ = node;
   LoadParameters();
@@ -32,7 +35,10 @@ RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
     robot_ = std::make_shared<RangerRobot>(false);
   }
 
-  if (port_name_.find("can") != std::string::npos) {
+  if(is_simulation){
+    // do nothing
+  }
+  else if (port_name_.find("can") != std::string::npos) {
     if (!robot_->Connect(port_name_)) {
       RCLCPP_ERROR(node_->get_logger(),"Failed to connect to the CAN port");
       return;
@@ -136,7 +142,7 @@ void RangerROSMessenger::SetupSubscription() {
 
   // subscriber
   motion_cmd_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
-      "/cmd_vel", 5, std::bind(&RangerROSMessenger::TwistCmdCallback, this, std::placeholders::_1)
+      "/velocity_controller/cmd_vel_unstamped", 5, std::bind(&RangerROSMessenger::TwistCmdCallback, this, std::placeholders::_1)
       );
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
 }
@@ -360,17 +366,19 @@ void RangerROSMessenger::UpdateOdometry(double linear, double angular,
 }
 
 void RangerROSMessenger::TwistCmdCallback(geometry_msgs::msg::Twist::SharedPtr msg) {
-  double steer_cmd;
-  double radius;
+  double steer_cmd = 0.0;
+  double radius = 0.0;
 
   // analyze Twist msg and switch motion_mode
   if (msg->linear.y != 0) {
     if (msg->linear.x == 0.0 && robot_type_ == RangerSubType::kRangerMiniV1) {
       motion_mode_ = MotionState::MOTION_MODE_SIDE_SLIP;
       robot_->SetMotionMode(MotionState::MOTION_MODE_SIDE_SLIP);
+      RCLCPP_INFO(node_->get_logger(), "SLIDE SLIP mode activated.");
     } else {
       motion_mode_ = MotionState::MOTION_MODE_PARALLEL;
       robot_->SetMotionMode(MotionState::MOTION_MODE_PARALLEL);
+      RCLCPP_INFO(node_->get_logger(), "Motion PARALLEL mode activated.");
     }
   } else {
     steer_cmd = CalculateSteeringAngle(*msg, radius);
@@ -378,9 +386,11 @@ void RangerROSMessenger::TwistCmdCallback(geometry_msgs::msg::Twist::SharedPtr m
     if (radius < robot_params_.min_turn_radius) {
       motion_mode_ = MotionState::MOTION_MODE_SPINNING;
       robot_->SetMotionMode(MotionState::MOTION_MODE_SPINNING);
+      RCLCPP_INFO(node_->get_logger(), "Motion SPINNING mode activated.");
     } else {
       motion_mode_ = MotionState::MOTION_MODE_DUAL_ACKERMAN;
       robot_->SetMotionMode(MotionState::MOTION_MODE_DUAL_ACKERMAN);
+      // RCLCPP_INFO(node_->get_logger(), "Motion DUAL_ACKERMAN mode activated.");
     }
   }
 
@@ -451,10 +461,11 @@ double RangerROSMessenger::CalculateSteeringAngle(geometry_msgs::msg::Twist msg,
   radius = linear / angular;
   int k = (msg.angular.z * msg.linear.x) >= 0 ? 1.0 : -1.0;
 
-  double l, w, phi_i, x;
+  // double w, x;
+  double l, phi_i;
   l = robot_params_.wheelbase;
-  w = robot_params_.track;
-  x = sqrt(radius * radius + (l / 2) * (l / 2));
+  // w = robot_params_.track;
+  // x = sqrt(radius * radius + (l / 2) * (l / 2));
   //phi_i = atan((l / 2) / (x - w / 2));
   phi_i = atan((l / 2) / radius);
   return k * phi_i;
