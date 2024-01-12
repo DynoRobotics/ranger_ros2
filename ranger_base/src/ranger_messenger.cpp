@@ -22,9 +22,6 @@ namespace westonrobot {
 ///////////////////////////////////////////////////////////////////////////////////
 RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
 
-  // bool is_simulation = node->declare_parameter<bool>("is_simulation", false);
-  bool is_simulation = true;
-
   node_ = node;
   LoadParameters();
 
@@ -35,7 +32,7 @@ RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
     robot_ = std::make_shared<RangerRobot>(false);
   }
 
-  if(is_simulation){
+  if(is_simulation_){
     // do nothing
   }
   else if (port_name_.find("can") != std::string::npos) {
@@ -70,15 +67,16 @@ void RangerROSMessenger::LoadParameters() {
   update_rate_ = node_->declare_parameter<int>("update_rate", 50);
   odom_topic_name_ = node_->declare_parameter<std::string>("odom_topic_name", "odom");
   publish_odom_tf_ = node_->declare_parameter<bool>("publish_odom_tf",false);
+  is_simulation_ = node_->declare_parameter<bool>("is_simulation",false);
 
   RCLCPP_INFO(node_->get_logger(),
       "Successfully loaded the following parameters: \n port_name: %s\n "
       "robot_model: %s\n odom_frame: %s\n base_frame: %s\n "
       "update_rate: %d\n odom_topic_name: %s\n "
-      "publish_odom_tf: %d\n",
+      "publish_odom_tf: %d\n is_simulation: %d\n",
       port_name_.c_str(), robot_model_.c_str(), odom_frame_.c_str(),
       base_frame_.c_str(), update_rate_, odom_topic_name_.c_str(),
-      publish_odom_tf_);
+      publish_odom_tf_, is_simulation_);
 
   // load robot parameters
   if (robot_model_ == "ranger_mini_v1") {
