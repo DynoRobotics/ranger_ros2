@@ -22,7 +22,6 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <tf2_ros/transform_broadcaster.h>
-#include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -42,6 +41,7 @@
 #include "ranger_msgs/msg/driver_state.hpp"
 #include "ranger_msgs/msg/motor_state.hpp"
 
+#include "ranger_base/gazebo_ranger_robot.hpp"
 #include "ranger_base/ranger_params.hpp"
 
 namespace westonrobot {
@@ -59,7 +59,7 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
     double min_turn_radius;
   };
 
-  enum class RangerSubType { kRanger = 0, kRangerMiniV1, kRangerMiniV2 };
+  enum class RangerSubType { kRanger = 0, kRangerMiniV1, kRangerMiniV2, kGazeboRanger };
 
  public:
   RangerROSMessenger(rclcpp::Node::SharedPtr& node);

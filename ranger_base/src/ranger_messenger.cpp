@@ -28,6 +28,8 @@ RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
   // connect to robot and setup ROS subscription
   if (robot_type_ == RangerSubType::kRangerMiniV1) {
     robot_ = std::make_shared<RangerRobot>(true);
+  } else if (robot_type_ == RangerSubType::kGazeboRanger) {
+    robot_ = std::make_shared<GazeboRangerRobot>(this->node_);
   } else {
     robot_ = std::make_shared<RangerRobot>(false);
   }
@@ -108,6 +110,20 @@ void RangerROSMessenger::LoadParameters() {
           RangerMiniV2Params::max_steer_angle_parallel;
       robot_params_.max_round_angle = RangerMiniV2Params::max_round_angle;
       robot_params_.min_turn_radius = RangerMiniV2Params::min_turn_radius;
+    } else if (robot_model_ == "gazebo_ranger") {
+      robot_type_ = RangerSubType::kGazeboRanger;
+
+      robot_params_.track = RangerParams::track;
+      robot_params_.wheelbase = RangerParams::wheelbase;
+      robot_params_.max_linear_speed = RangerParams::max_linear_speed;
+      robot_params_.max_angular_speed = RangerParams::max_angular_speed;
+      robot_params_.max_speed_cmd = RangerParams::max_speed_cmd;
+      robot_params_.max_steer_angle_central =
+          RangerParams::max_steer_angle_central;
+      robot_params_.max_steer_angle_parallel =
+          RangerParams::max_steer_angle_parallel;
+      robot_params_.max_round_angle = RangerParams::max_round_angle;
+      robot_params_.min_turn_radius = RangerParams::min_turn_radius;
     } else {
       robot_type_ = RangerSubType::kRanger;
 
