@@ -10,6 +10,7 @@ GazeboRangerRobot::GazeboRangerRobot(std::shared_ptr<rclcpp::Node> node) : Range
     node_ = node;
     // Publishers
     arm_joint_state_pub = node->create_publisher<std_msgs::msg::Float64MultiArray>("/arm_joints_controller/commands", 10);
+    wheel_joint_state_pub = node->create_publisher<std_msgs::msg::Float64MultiArray>("/wheel_joints_controller/commands", 10);
 
     RCLCPP_INFO(rclcpp::get_logger("gazebo_ranger_robot"), "Constructing GazeboRangerRobot");
 }
@@ -22,6 +23,7 @@ GazeboRangerRobot::~GazeboRangerRobot()
 bool GazeboRangerRobot::Connect(std::string can_name)
 {
     RCLCPP_INFO(rclcpp::get_logger("gazebo_ranger_robot"),"Gazebo robot, no need to connect");
+    (void)can_name;
     return true;
 }
 
@@ -33,6 +35,7 @@ void GazeboRangerRobot::EnableCommandedMode()
 std::string GazeboRangerRobot::RequestVersion(int timeout_sec)
 {
     RCLCPP_INFO(rclcpp::get_logger("gazebo_ranger_robot"),"GazeboRangerRobot::RequestVersion");
+    (void)timeout_sec;
     return "GazeboRangerRobot::RequestVersion";
 }
 
@@ -56,45 +59,59 @@ ProtocolVersion GazeboRangerRobot::GetParserProtocolVersion()
 // robot control
 void GazeboRangerRobot::SetMotionMode(uint8_t mode)
 {
-    RCLCPP_INFO(rclcpp::get_logger("gazebo_ranger_robot"),"GazeboRangerRobot::SetMotionMode to %d", mode);
     motion_mode_ = mode;
-    std_msgs::msg::Float64MultiArray arm_joint_state;
-    //set the arm joint positions here
-    switch (motion_mode_)
-    {
-    case MotionState::MOTION_MODE_DUAL_ACKERMAN:
-        arm_joint_state.data = {0, 0, 0, 0};
-        arm_joint_state_pub->publish(arm_joint_state);
-        break;
-    case MotionState::MOTION_MODE_PARALLEL:
-        arm_joint_state.data = {0, 0, 0, 0}; // TODO(Chris): set the arm joint positions here
-        arm_joint_state_pub->publish(arm_joint_state);
-        break;
-    case MotionState::MOTION_MODE_SPINNING:
-        arm_joint_state.data = {-M_PI/2, M_PI/2, M_PI/2, -M_PI/2};
-        arm_joint_state_pub->publish(arm_joint_state);
-        break;
-    default:
-        break;
-    }
 }
 
 void GazeboRangerRobot::SetMotionCommand(double linear_vel, double steer_angle,
                     double angular_vel)
 {
     RCLCPP_INFO(rclcpp::get_logger("gazebo_ranger_robot"),"GazeboRangerRobot::SetMotionCommand");
-    // set the velocity for all four wheels here
-    // set position for all four arms here
-    msg.body.motion_command_msg.linear_velocity = linear_vel;
-    msg.body.motion_command_msg.angular_velocity = angular_vel;
-    msg.body.motion_command_msg.lateral_velocity = lateral_vel;
-    msg.body.motion_command_msg.steering_angle = steering_angle;
+    std_msgs::msg::Float64MultiArray arm_joint_state;
+    std_msgs::msg::Float64MultiArray wheel_joint_state;
+
+    // info log all the things
+    RCLCPP_INFO(rclcpp::get_logger("gazebo_ranger_robot"),"GazeboRangerRobot::SetMotionCommand linear_vel %f", linear_vel);
+    RCLCPP_INFO(rclcpp::get_logger("gazebo_ranger_robot"),"GazeboRangerRobot::SetMotionCommand steer_angle %f", steer_angle);
+    RCLCPP_INFO(rclcpp::get_logger("gazebo_ranger_robot"),"GazeboRangerRobot::SetMotionCommand angular_vel %f", angular_vel);
+
+    double lin_vel = linear_vel / RangerParams::wheel_radius;
+    double ang_vel = angular_vel / RangerParams::wheel_radius;
+    double steer_ang = (std::isnan(steer_angle)) ? 0 : steer_angle;
+
+    // set the arm positions and velocities for all wheels here
+    switch (motion_mode_)
+    {
+    case MotionState::MOTION_MODE_DUAL_ACKERMAN:
+        arm_joint_state.data = {steer_ang, steer_ang, -steer_ang, -steer_ang};
+        wheel_joint_state.data = {lin_vel, lin_vel, lin_vel, lin_vel};
+        break;
+    case MotionState::MOTION_MODE_PARALLEL:
+        arm_joint_state.data = {M_PI/2, M_PI/2, M_PI/2, M_PI/2};
+        lin_vel *= -steer_ang/abs(steer_ang);
+        wheel_joint_state.data = {lin_vel, lin_vel, lin_vel, lin_vel};
+        break;
+    case MotionState::MOTION_MODE_SPINNING:
+        arm_joint_state.data = {-M_PI/4, M_PI/4, M_PI/4, -M_PI/4};
+        wheel_joint_state.data = {-ang_vel, ang_vel, -ang_vel, ang_vel};
+        break;
+    default:
+        RCLCPP_ERROR(rclcpp::get_logger("gazebo_ranger_robot"),"GazeboRangerRobot::SetMotionCommand unrecognized mode %d", motion_mode_);
+        break;
+    }
+
+    // publish the arm and wheel joint state
+    arm_joint_state_pub->publish(arm_joint_state);
+    wheel_joint_state_pub->publish(wheel_joint_state);
 }
 
 void GazeboRangerRobot::SetLightCommand(AgxLightMode f_mode, uint8_t f_value,
                     AgxLightMode r_mode, uint8_t r_value)
 {
     RCLCPP_INFO(rclcpp::get_logger("gazebo_ranger_robot"),"GazeboRangerRobot::SetLightCommand");
+    (void)f_mode;
+    (void)f_value;
+    (void)r_mode;
+    (void)r_value;
 }
 
 // get robot state

@@ -11,6 +11,7 @@
 #include <ranger_msgs/msg/driver_state.hpp>
 #include <ranger_msgs/msg/motor_state.hpp>
 
+#include "ranger_base/ranger_params.hpp"
 #include "ugv_sdk/mobile_robot/ranger_robot.hpp"
 
 namespace westonrobot {
@@ -55,6 +56,7 @@ class GazeboRangerRobot : public RangerRobot {
  uint8_t motion_mode_;
 
  rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr arm_joint_state_pub;
+ rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr wheel_joint_state_pub;
 };
 }  // namespace westonrobot
 
