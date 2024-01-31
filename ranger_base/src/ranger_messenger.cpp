@@ -54,6 +54,7 @@ RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
 void RangerROSMessenger::Run() {
   rclcpp::Rate rate(update_rate_);
   while (rclcpp::ok()) {
+    // RCLCPP_INFO(node_->get_logger(),"Publishing state to ROS");
     PublishStateToROS();
     rclcpp::spin_some(node_);
     rate.sleep();
@@ -174,9 +175,21 @@ void RangerROSMessenger::PublishStateToROS() {
   auto state = robot_->GetRobotState();
   auto actuator_state = robot_->GetActuatorState();
 
+
   // update odometry
   {
     double dt = (current_time_ - last_time_).seconds();
+    // UpdateOdometry will inf loop if dt == 0.0
+    // No need to update anything if no time step has passed
+    if(dt == 0.0){
+      return;
+    }
+    // RCLCPP_INFO(node_->get_logger(),"linear_velocity: %f angular_velocity: %f steering_angle: %f dt: %f",
+    //                 state.motion_state.linear_velocity,
+    //                 state.motion_state.angular_velocity,
+    //                 state.motion_state.steering_angle,
+    //                 dt);
+
     UpdateOdometry(state.motion_state.linear_velocity,
                    state.motion_state.angular_velocity,
                    state.motion_state.steering_angle, dt);
@@ -388,11 +401,11 @@ void RangerROSMessenger::TwistCmdCallback(geometry_msgs::msg::Twist::SharedPtr m
     if (msg->linear.x == 0.0 && robot_type_ == RangerSubType::kRangerMiniV1) {
       motion_mode_ = MotionState::MOTION_MODE_SIDE_SLIP;
       robot_->SetMotionMode(MotionState::MOTION_MODE_SIDE_SLIP);
-      RCLCPP_INFO(node_->get_logger(), "SLIDE SLIP mode activated.");
+      // RCLCPP_INFO(node_->get_logger(), "SLIDE SLIP mode activated.");
     } else {
       motion_mode_ = MotionState::MOTION_MODE_PARALLEL;
       robot_->SetMotionMode(MotionState::MOTION_MODE_PARALLEL);
-      RCLCPP_INFO(node_->get_logger(), "Motion PARALLEL mode activated.");
+      // RCLCPP_INFO(node_->get_logger(), "Motion PARALLEL mode activated.");
     }
   } else {
     steer_cmd = CalculateSteeringAngle(*msg, radius);
@@ -400,7 +413,7 @@ void RangerROSMessenger::TwistCmdCallback(geometry_msgs::msg::Twist::SharedPtr m
     if (radius < robot_params_.min_turn_radius) {
       motion_mode_ = MotionState::MOTION_MODE_SPINNING;
       robot_->SetMotionMode(MotionState::MOTION_MODE_SPINNING);
-      RCLCPP_INFO(node_->get_logger(), "Motion SPINNING mode activated.");
+      // RCLCPP_INFO(node_->get_logger(), "Motion SPINNING mode activated.");
     } else {
       motion_mode_ = MotionState::MOTION_MODE_DUAL_ACKERMAN;
       robot_->SetMotionMode(MotionState::MOTION_MODE_DUAL_ACKERMAN);
