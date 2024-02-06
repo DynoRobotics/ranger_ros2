@@ -131,7 +131,6 @@ void GazeboRangerRobot::SetLightCommand(AgxLightMode f_mode, uint8_t f_value,
 // get robot state
 RangerCoreState GazeboRangerRobot::GetRobotState() // TODO 
 {
-    // ranger_state.time_stamp = node_.get()->now().nanoseconds();
     return ranger_state_;
 }
 
